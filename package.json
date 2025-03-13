@@ -1,10 +1,17 @@
 {
   "name": "@an4s3crwt/js-react-lib",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "A React component library for various JavaScript projects.",
   "author": "Ana Gilabert",
   "license": "MIT",
   "main": "build/src/index.js",
+  "module": "build/src/index.js",
+  "exports": {
+    ".": {
+      "import": "./build/src/index.js",
+      "require": "./build/src/index.js"
+    }
+  },
   "types": "build/src/index.d.ts",
   "files": [
     "build/src"
