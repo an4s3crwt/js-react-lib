@@ -4,6 +4,7 @@ import { Service } from "./../abstractions";
 export class RESTService extends Service {
   constructor(key) {
     super(key);
+    console.log("Initializing RESTService:", key);
     this.authorizationHeader = "";
     this.display = {
       keyNamespace: LocalizationNamespaces.System,
