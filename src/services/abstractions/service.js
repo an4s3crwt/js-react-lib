@@ -1,5 +1,10 @@
 import { LogProvider } from "./../../logging";
-import { ServiceProvider } from "./../serviceProvider";
+
+import { LocalizationNamespaces } from "./../../i18n";
+import {
+  createResponse,
+  ResponseStateEnumeration,
+} from "./../../communication";
 
 export const ServiceStateEnumeration = {
   Unknown: 0,
@@ -10,67 +15,51 @@ export const ServiceStateEnumeration = {
 };
 
 export class Service {
-  // IService
-  key;
-  display;
-  description;
-  state;
-
-  // Props
-
-  version = 0;
-  changesSubscriberDictionary = {};
-  changesSubscriptionCounter = 0;
-  logger;
-  serviceProvider;
-  isDebugModeActive = false;
-
   constructor(key) {
     this.key = key;
-
     this.display = {
-      keyNamespace: "System",
+      keyNamespace: LocalizationNamespaces.System,
       key: "global.nodisplaydefined",
       value: "Service?",
     };
 
     this.description = {
-      keyNamespace: "System",
+      keyNamespace: LocalizationNamespaces.System,
       key: "global.nodescriptiondefined",
       value: "Description?",
     };
 
     this.state = ServiceStateEnumeration.Unknown;
     this.logger = LogProvider.getLogger(key);
-    // Inyecta el ServiceProvider solo si está definido
-    if (serviceProvider) {
-      this.injectServiceProvider(serviceProvider);
-    }
-  }
 
+    this.version = 0;
+    this.changesSubscriberDictionary = {};
+    this.changesSubscriptionCounter = 0;
+    this.serviceProvider = null;
+    this.isDebugModeActive = false;
+  }
+  /** Inicia el servicio */
   async start() {
     this.logger.info(`Starting '${this.key}'.`);
-
-    // Init fields
     this.changesSubscriberDictionary = {};
 
     const onStartingResponse = await this.onStarting();
-    if (onStartingResponse.state === "OK") {
+    if (onStartingResponse.state === ResponseStateEnumeration.OK) {
       this.logger.info(`'${this.key}' is running.`);
       this.updateState(ServiceStateEnumeration.Running);
     } else {
       this.logger.error(`'${this.key}' could not be started.`);
       this.updateState(ServiceStateEnumeration.Error);
     }
-
     return onStartingResponse;
   }
 
+  /** Detiene el servicio */
   async stop() {
     this.logger.info(`Stopping '${this.key}'.`);
 
     const onStoppingResponse = await this.onStopping();
-    if (onStoppingResponse.state === "OK") {
+    if (onStoppingResponse.state === ResponseStateEnumeration.OK) {
       this.logger.info(`'${this.key}' is stopped.`);
       this.updateState(ServiceStateEnumeration.Stopped);
     } else {
@@ -78,84 +67,83 @@ export class Service {
       this.updateState(ServiceStateEnumeration.Error);
     }
 
-    // Dispose fields
     this.changesSubscriberDictionary = {};
-
     return onStoppingResponse;
   }
 
+  /**
+   * Suscribe un callback a los cambios del servicio.
+   * @param {string} contextKey - Clave del contexto.
+   * @param {Function} callbackHandler - Función callback a ejecutar en cambios.
+   * @returns {string} Clave de registro de la suscripción.
+   */
   onChanges(contextKey, callbackHandler) {
-    // Setup register key
     this.changesSubscriptionCounter++;
     const registerKey = `${contextKey}_${this.changesSubscriptionCounter}`;
-
-    // Register callback
     this.changesSubscriberDictionary[registerKey] = callbackHandler;
-    this.logger.debug(
-      `Component with key '${registerKey}' has subscribed on 'Changes'.`
-    );
-    this.logger.debug(
-      `'${
-        Object.entries(this.changesSubscriberDictionary).length
-      }' subscribers on 'Changes'.`
-    );
 
-    // Execute the callback to update the handler immediately
+    this.logger.debug(`Component '${registerKey}' subscribed to 'Changes'.`);
     callbackHandler(this.version, "Subscription successfully", this.key);
 
     return registerKey;
   }
 
+  /**
+   * Desuscribe un callback de los cambios del servicio.
+   * @param {string} registerKey - Clave de registro de la suscripción.
+   * @returns {boolean} `true` si la suscripción fue eliminada, `false` si no existía.
+   */
   offChanges(registerKey) {
-    // Delete callback
-    const existingSubscriber = Object.entries(
-      this.changesSubscriberDictionary
-    ).find(([key, value]) => key === registerKey);
-    if (existingSubscriber) {
+    if (this.changesSubscriberDictionary[registerKey]) {
       delete this.changesSubscriberDictionary[registerKey];
       this.logger.debug(
-        `Component with key '${registerKey}' has unsubscribed on 'Changes'.`
+        `Component '${registerKey}' unsubscribed from 'Changes'.`
       );
-      this.logger.debug(
-        `'${
-          Object.entries(this.changesSubscriberDictionary).length
-        }' subscribers on 'Changes'.`
-      );
-
       return true;
     } else {
       this.logger.error(
-        `Component with key '${registerKey}' not registered on 'Changes'.`
+        `Component '${registerKey}' not registered on 'Changes'.`
       );
-      this.logger.debug(
-        `'${
-          Object.entries(this.changesSubscriberDictionary).length
-        }' subscribers on 'Changes'.`
-      );
-
       return false;
     }
   }
 
-  injectServiceProvider(serviceProvider ) {
+  /**
+   * Inyecta un proveedor de servicio.
+   * @param {Object} serviceProvider - Proveedor de servicio.
+   */
+  injectServiceProvider(serviceProvider) {
     this.serviceProvider = serviceProvider;
   }
 
+  /**
+   * Activa o desactiva el modo debug.
+   * @param {boolean} enabled - `true` para activar debug, `false` para desactivar.
+   */
   setDebugMode(enabled) {
     this.isDebugModeActive = enabled;
   }
 
-  // Abstract methods for stopping and starting services
+  /**
+   * Método abstracto a ser implementado en clases hijas.
+   * @returns {Promise<IResponse<boolean>>}
+   */
   async onStarting() {
-    // To be implemented in subclasses
-    return { state: "OK" };
+    throw new Error("onStarting() must be implemented in the subclass.");
   }
 
+  /**
+   * Método abstracto a ser implementado en clases hijas.
+   * @returns {Promise<IResponse<boolean>>}
+   */
   async onStopping() {
-    // To be implemented in subclasses
-    return { state: "OK" };
+    throw new Error("onStopping() must be implemented in the subclass.");
   }
 
+  /**
+   * Actualiza el estado del servicio y notifica cambios.
+   * @param {number} state - Nuevo estado del servicio.
+   */
   updateState(state) {
     this.state = state;
     this.updateVersion(
@@ -163,15 +151,16 @@ export class Service {
     );
   }
 
+  /**
+   * Actualiza la versión interna del servicio y notifica a los suscriptores.
+   * @param {string} reason - Razón de la actualización.
+   */
   updateVersion(reason) {
     this.version++;
-    this.logger.debug(
-      `Version has been updated to '${this.version}'. ${reason}`
-    );
+    this.logger.debug(`Version updated to '${this.version}'. ${reason}`);
 
-    // Execute callbacks
-    Object.entries(this.changesSubscriberDictionary).forEach(([key, value]) =>
-      value(this.version, reason, this.key)
-    );
+    Object.values(this.changesSubscriberDictionary).forEach((callback) => {
+      callback(this.version, reason, this.key);
+    });
   }
 }
