@@ -1,50 +1,40 @@
-import { Service } from './abstractions';
-import { ServiceDictionary } from './serviceDictionary';
-import { createResponse, ResponseStateEnumeration } from './createResponse'; // Import createResponse
+import { ServiceDictionary } from "./serviceDictionary";
+import { ResponseStateEnumeration } from "./../communication/response";
 
 export class ServiceProvider {
-
   constructor(key) {
     this.key = key;
-    this.serviceDictionary = ServiceDictionary; // Assuming ServiceDictionary is initialized elsewhere
+    this.serviceDictionary = ServiceDictionary || {}; // Asegura que siempre sea un objeto válido
   }
 
-  // Add a service
+  // Agregar un servicio con inyección de ServiceProvider
   addService(service, serviceKey) {
     if (!this.serviceDictionary[serviceKey]) {
+      service.injectServiceProvider(this); // Inyecta el ServiceProvider antes de registrarlo
       this.serviceDictionary[serviceKey] = service;
     }
   }
 
-  // Get a service
+  // Obtener un servicio
   getService(serviceKey) {
-    const service = this.serviceDictionary[serviceKey];
-    return service ? service : undefined;
+    return this.serviceDictionary[serviceKey] || undefined;
   }
 
-  // Start services
+  // Iniciar todos los servicios
   async startServices() {
-    const serviceStartPromises = [];
-    Object.entries(this.serviceDictionary).forEach(([key, value]) => {
-      const service = value;
-      service.injectServiceProvider(this); // Inject ServiceProvider for each service
-      serviceStartPromises.push(service.start());
+    const serviceStartPromises = Object.values(this.serviceDictionary).map(service => {
+      service.injectServiceProvider(this);
+      return service.start();
     });
 
     const serviceStartResponses = await Promise.all(serviceStartPromises);
-    const failedServices = serviceStartResponses.filter(r => r.state === ResponseStateEnumeration.Error);
-
-    return failedServices.length === 0;
+    return serviceStartResponses.every(r => r.state !== ResponseStateEnumeration.Error);
   }
 
-  // Stop services
+  // Detener todos los servicios
   async stopServices() {
-    const serviceStopPromises = [];
-    Object.entries(this.serviceDictionary).forEach(([key, value]) => serviceStopPromises.push(value.stop()));
-
+    const serviceStopPromises = Object.values(this.serviceDictionary).map(service => service.stop());
     const serviceStopResponses = await Promise.all(serviceStopPromises);
-    const failedServices = serviceStopResponses.filter(r => r.state === ResponseStateEnumeration.Error);
-
-    return failedServices.length === 0;
+    return serviceStopResponses.every(r => r.state !== ResponseStateEnumeration.Error);
   }
 }

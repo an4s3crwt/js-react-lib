@@ -1,4 +1,4 @@
-import { Service } from '../abstractions';
+import { Service } from './../abstractions';
 import { createResponse, ResponseStateEnumeration } from './../../communication';
 import { LocalizationNamespaces } from '../../i18n';
 import { NavigationTypeEnumeration } from '../../navigation';

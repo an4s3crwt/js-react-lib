@@ -1,13 +1,14 @@
 import { createResponse, ResponseStateEnumeration } from '../../communication';
 import { LocalizationNamespaces } from '../../i18n';
+import { Service } from './../abstractions';
 
-export class RESTService {
+export class RESTService extends Service {
 
   // Props
   authorizationHeader = '';
 
   constructor(key) {
-    this.key = key;
+    super(key);//cambié esto
     this.display = {
       keyNamespace: LocalizationNamespaces.System,
       key: 'services.restservice.display',

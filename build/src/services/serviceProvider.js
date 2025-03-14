@@ -1,6 +1,6 @@
-import { Service } from './abstractions';
-import { ServiceDictionary } from './serviceDictionary';
-import { createResponse, ResponseStateEnumeration } from './createResponse'; // Import createResponse
+import { Service } from "./abstractions";
+import { ServiceDictionary } from "./serviceDictionary";
+import { createResponse, ResponseStateEnumeration } from "./../communication/response"; // Import createResponse
 
 export class ServiceProvider {
   constructor(key) {
@@ -11,6 +11,8 @@ export class ServiceProvider {
   // Add a service
   addService(service, serviceKey) {
     if (!this.serviceDictionary[serviceKey]) {
+      // Inyecta el ServiceProvider en el servicio antes de guardarlo
+      service.injectServiceProvider(this);
       this.serviceDictionary[serviceKey] = service;
     }
   }

@@ -1,4 +1,5 @@
-import { LogProvider } from './../../logging';
+import { LogProvider } from "./../../logging";
+import { ServiceProvider } from "./../serviceProvider";
 export const ServiceStateEnumeration = {
   Unknown: 0,
   Initialized: 1,
@@ -14,6 +15,7 @@ export class Service {
   state;
 
   // Props
+
   version = 0;
   changesSubscriberDictionary = {};
   changesSubscriptionCounter = 0;
@@ -23,17 +25,21 @@ export class Service {
   constructor(key) {
     this.key = key;
     this.display = {
-      keyNamespace: 'System',
-      key: 'global.nodisplaydefined',
-      value: 'Service?'
+      keyNamespace: "System",
+      key: "global.nodisplaydefined",
+      value: "Service?"
     };
     this.description = {
-      keyNamespace: 'System',
-      key: 'global.nodescriptiondefined',
-      value: 'Description?'
+      keyNamespace: "System",
+      key: "global.nodescriptiondefined",
+      value: "Description?"
     };
     this.state = ServiceStateEnumeration.Unknown;
     this.logger = LogProvider.getLogger(key);
+    // Inyecta el ServiceProvider solo si está definido
+    if (serviceProvider) {
+      this.injectServiceProvider(serviceProvider);
+    }
   }
   async start() {
     this.logger.info(`Starting '${this.key}'.`);
@@ -41,7 +47,7 @@ export class Service {
     // Init fields
     this.changesSubscriberDictionary = {};
     const onStartingResponse = await this.onStarting();
-    if (onStartingResponse.state === 'OK') {
+    if (onStartingResponse.state === "OK") {
       this.logger.info(`'${this.key}' is running.`);
       this.updateState(ServiceStateEnumeration.Running);
     } else {
@@ -53,7 +59,7 @@ export class Service {
   async stop() {
     this.logger.info(`Stopping '${this.key}'.`);
     const onStoppingResponse = await this.onStopping();
-    if (onStoppingResponse.state === 'OK') {
+    if (onStoppingResponse.state === "OK") {
       this.logger.info(`'${this.key}' is stopped.`);
       this.updateState(ServiceStateEnumeration.Stopped);
     } else {
@@ -76,7 +82,7 @@ export class Service {
     this.logger.debug(`'${Object.entries(this.changesSubscriberDictionary).length}' subscribers on 'Changes'.`);
 
     // Execute the callback to update the handler immediately
-    callbackHandler(this.version, 'Subscription successfully', this.key);
+    callbackHandler(this.version, "Subscription successfully", this.key);
     return registerKey;
   }
   offChanges(registerKey) {
@@ -104,13 +110,13 @@ export class Service {
   async onStarting() {
     // To be implemented in subclasses
     return {
-      state: 'OK'
+      state: "OK"
     };
   }
   async onStopping() {
     // To be implemented in subclasses
     return {
-      state: 'OK'
+      state: "OK"
     };
   }
   updateState(state) {
