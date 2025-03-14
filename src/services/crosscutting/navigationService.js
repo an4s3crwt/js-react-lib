@@ -26,6 +26,8 @@ export class NavigationService extends Service {
       key: "services.navigationservice.description",
       value: "Provides all interaction options for UI navigation.",
     };
+
+    this.logger.info("NavigationService initialized.");
   }
 
   show = (navigationData, url) => {
@@ -38,81 +40,93 @@ export class NavigationService extends Service {
       timeStamp: Date.now(),
     };
 
+    this.logger.debug(`Showing navigation request: ${JSON.stringify(navigationRequest)}`);
     this.processNavigationRequest(navigationRequest);
   };
 
   onNavigationRequest = (contextKey, callbackHandler) => {
-    // Setup register key
     this.navigationRequestSubscriptionCounter++;
     const registerKey = `${contextKey}_${this.navigationRequestSubscriptionCounter}`;
 
-    // Register callback
     this.navigationRequestSubscriberDictionary[registerKey] = callbackHandler;
     this.logger.debug(
-      `Component with key '${registerKey}' has subscribed on 'NavigationRequest'.`
+      `Component with key '${registerKey}' has subscribed to 'NavigationRequest'.`
     );
     this.logger.debug(
-      `'${
-        Object.entries(this.navigationRequestSubscriberDictionary).length
-      }' subscribers on 'Changes'.`
+      `'${Object.entries(this.navigationRequestSubscriberDictionary).length}' subscribers on 'NavigationRequest'.`
     );
 
     return registerKey;
   };
 
   offNavigationRequest = (registerKey) => {
-    // Delete callback
-    const existingSubscriber = Object.entries(
-      this.navigationRequestSubscriberDictionary
-    ).find(([key, value]) => key === registerKey);
+    const existingSubscriber = Object.entries(this.navigationRequestSubscriberDictionary)
+      .find(([key, value]) => key === registerKey);
+    
     if (existingSubscriber) {
       delete this.navigationRequestSubscriberDictionary[registerKey];
       this.logger.debug(
-        `Component with key '${registerKey}' has unsubscribed on 'Changes'.`
+        `Component with key '${registerKey}' has unsubscribed from 'NavigationRequest'.`
       );
       this.logger.debug(
-        `'${
-          Object.entries(this.navigationRequestSubscriberDictionary).length
-        }' subscribers on 'Changes'.`
+        `'${Object.entries(this.navigationRequestSubscriberDictionary).length}' subscribers on 'NavigationRequest'.`
       );
-
       return true;
     } else {
       this.logger.error(
-        `Component with key '${registerKey}' not registered on 'Changes'.`
+        `Component with key '${registerKey}' not found in 'NavigationRequest' subscriptions.`
       );
       this.logger.debug(
-        `'${
-          Object.entries(this.navigationRequestSubscriberDictionary).length
-        }' subscribers on 'Changes'.`
+        `'${Object.entries(this.navigationRequestSubscriberDictionary).length}' subscribers on 'NavigationRequest'.`
       );
-
       return false;
     }
   };
 
   async onStarting() {
-    return createResponse(true, ResponseStateEnumeration.OK, []);
+    try {
+      this.logger.info("NavigationService is starting...");
+      return createResponse(true, ResponseStateEnumeration.OK, []);
+    } catch (error) {
+      this.logger.error("Error during NavigationService startup:", error);
+      return createResponse(false, ResponseStateEnumeration.Error, [error.message]);
+    }
   }
 
   async onStopping() {
-    return createResponse(true, ResponseStateEnumeration.OK, []);
+    try {
+      this.logger.info("NavigationService is stopping...");
+      return createResponse(true, ResponseStateEnumeration.OK, []);
+    } catch (error) {
+      this.logger.error("Error during NavigationService shutdown:", error);
+      return createResponse(false, ResponseStateEnumeration.Error, [error.message]);
+    }
   }
 
   processNavigationRequest(navigationRequest) {
-    Object.values(this.navigationRequestSubscriberDictionary).forEach(
-      (callback) => callback(navigationRequest)
-    );
-    this.archiveNavigationRequest(navigationRequest);
-    this.updateVersion(
-      `Navigation request has been added [${navigationRequest.key}, ${navigationRequest.type}]`
-    );
+    try {
+      this.logger.debug(`Processing navigation request: ${JSON.stringify(navigationRequest)}`);
+      Object.values(this.navigationRequestSubscriberDictionary).forEach(
+        (callback) => callback(navigationRequest)
+      );
+      this.archiveNavigationRequest(navigationRequest);
+      this.updateVersion(
+        `Navigation request has been added [${navigationRequest.key}, ${navigationRequest.type}]`
+      );
+    } catch (error) {
+      this.logger.error("Error processing navigation request:", error);
+    }
   }
 
   archiveNavigationRequest(navigationRequest) {
-    this.history.unshift(navigationRequest);
-    if (this.history.length > this.historyOverflowLimit) {
-      this.history.pop();
+    try {
+      this.history.unshift(navigationRequest);
+      if (this.history.length > this.historyOverflowLimit) {
+        this.history.pop();
+      }
+      this.logger.debug(`Archived navigation request: ${JSON.stringify(navigationRequest)}`);
+    } catch (error) {
+      this.logger.error("Error archiving navigation request:", error);
     }
   }
 }
