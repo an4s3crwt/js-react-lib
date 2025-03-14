@@ -2,7 +2,7 @@ import { Service } from "./abstractions";
 import { ServiceDictionary } from "./serviceDictionary";
 import { LogProvider } from "./../logging";
 import { ResponseStateEnumeration } from "./../communication";
-export class ServiceProvider {
+export class ServiceProvider extends Service {
   constructor(key) {
     this.key = key;
     this.serviceDictionary = ServiceDictionary;

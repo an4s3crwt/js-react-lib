@@ -4,8 +4,9 @@ import { LogProvider } from "./../logging";
 import { ResponseStateEnumeration } from "./../communication";
 
 
-export class ServiceProvider extends Service{
+export class ServiceProvider extends Service {
   constructor(key) {
+    super(key); // Llamada al constructor de la clase base
     this.key = key;
     this.serviceDictionary = ServiceDictionary;
     this.logger = LogProvider.getLogger(this.key);
@@ -41,27 +42,45 @@ export class ServiceProvider extends Service{
 
     const serviceStartPromises = Object.values(this.serviceDictionary).map(
       (service) => {
+        // Depuración: Verifica el tipo de servicio
+        this.logger.debug(`Service type: ${service.constructor.name}`);
+
         if (service instanceof Service) {
-          service.injectServiceProvider(this);
+          // Verifica si la función existe
+          if (typeof service.injectServiceProvider === 'function') {
+            service.injectServiceProvider(this); // Inyectamos el servicio
+          } else {
+            this.logger.error(`injectServiceProvider is not a function for ${service.key}`);
+            return Promise.reject(new Error('injectServiceProvider not found'));
+          }
+
+          return service.start(); // Llamamos al método start
+        } else {
+          this.logger.error(`Service is not an instance of Service: ${service}`);
+          return Promise.reject(new Error('Invalid service instance'));
         }
-        return service.start();
       }
     );
 
-    const serviceStartResponses = await Promise.all(serviceStartPromises);
-    const failedServices = serviceStartResponses.filter(
-      (r) => r.state === ResponseStateEnumeration.Error
-    );
-
-    if (failedServices.length > 0) {
-      this.logger.error(
-        `Not all services could be started. '${failedServices.length}' services failed!`
+    try {
+      const serviceStartResponses = await Promise.all(serviceStartPromises);
+      const failedServices = serviceStartResponses.filter(
+        (r) => r.state === ResponseStateEnumeration.Error
       );
-    } else {
-      this.logger.info(`All services started and ready.`);
-    }
 
-    return failedServices.length === 0;
+      if (failedServices.length > 0) {
+        this.logger.error(
+          `Not all services could be started. '${failedServices.length}' services failed!`
+        );
+      } else {
+        this.logger.info(`All services started and ready.`);
+      }
+
+      return failedServices.length === 0;
+    } catch (error) {
+      this.logger.error(`Error starting services: ${error.message}`);
+      return false;
+    }
   }
 
   // Detener todos los servicios
