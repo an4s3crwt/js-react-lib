@@ -1,38 +1,65 @@
+import { Service } from "./abstractions";
 import { ServiceDictionary } from "./serviceDictionary";
-import { ResponseStateEnumeration } from "./../communication/response";
+import { LogProvider } from "./../logging";
+import { ResponseStateEnumeration } from "./../communication";
 export class ServiceProvider {
   constructor(key) {
     this.key = key;
-    this.serviceDictionary = ServiceDictionary || {}; // Asegura que siempre sea un objeto válido
+    this.serviceDictionary = ServiceDictionary;
+    this.logger = LogProvider.getLogger(this.key);
   }
-
-  // Agregar un servicio con inyección de ServiceProvider
   addService(service, serviceKey) {
-    if (!this.serviceDictionary[serviceKey]) {
-      service.injectServiceProvider(this); // Inyecta el ServiceProvider antes de registrarlo
-      this.serviceDictionary[serviceKey] = service;
+    // Check if the service already exists
+    if (this.serviceDictionary.hasOwnProperty(serviceKey)) {
+      return;
     }
+
+    // Push the new service to the dictionary
+    this.logger.info(`Service '${serviceKey}' added.`);
+    this.serviceDictionary[serviceKey] = service;
   }
 
   // Obtener un servicio
   getService(serviceKey) {
-    return this.serviceDictionary[serviceKey] || undefined;
+    if (this.serviceDictionary.hasOwnProperty(serviceKey)) {
+      return this.serviceDictionary[serviceKey];
+    }
+    this.logger.error(`Service '${serviceKey}' not found.`);
+    return undefined;
   }
 
   // Iniciar todos los servicios
   async startServices() {
+    this.logger.info(`'${Object.keys(this.serviceDictionary).length}' services detected.`);
+    this.logger.info(`Starting services.`);
     const serviceStartPromises = Object.values(this.serviceDictionary).map(service => {
-      service.injectServiceProvider(this);
+      if (service instanceof Service) {
+        service.injectServiceProvider(this);
+      }
       return service.start();
     });
     const serviceStartResponses = await Promise.all(serviceStartPromises);
-    return serviceStartResponses.every(r => r.state !== ResponseStateEnumeration.Error);
+    const failedServices = serviceStartResponses.filter(r => r.state === ResponseStateEnumeration.Error);
+    if (failedServices.length > 0) {
+      this.logger.error(`Not all services could be started. '${failedServices.length}' services failed!`);
+    } else {
+      this.logger.info(`All services started and ready.`);
+    }
+    return failedServices.length === 0;
   }
 
   // Detener todos los servicios
   async stopServices() {
+    this.logger.info(`'${Object.keys(this.serviceDictionary).length}' services detected.`);
+    this.logger.info(`Stopping services.`);
     const serviceStopPromises = Object.values(this.serviceDictionary).map(service => service.stop());
     const serviceStopResponses = await Promise.all(serviceStopPromises);
-    return serviceStopResponses.every(r => r.state !== ResponseStateEnumeration.Error);
+    const failedServices = serviceStopResponses.filter(r => r.state === ResponseStateEnumeration.Error);
+    if (failedServices.length > 0) {
+      this.logger.error(`Not all services could be stopped. '${failedServices.length}' services failed!`);
+    } else {
+      this.logger.info(`All services stopped.`);
+    }
+    return failedServices.length === 0;
   }
 }

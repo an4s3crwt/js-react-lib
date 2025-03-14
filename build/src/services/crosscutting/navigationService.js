@@ -1,26 +1,23 @@
-import { Service } from './../abstractions';
-import { createResponse, ResponseStateEnumeration } from './../../communication';
-import { LocalizationNamespaces } from '../../i18n';
-import { NavigationTypeEnumeration } from '../../navigation';
+import { Service } from "./../abstractions";
+import { createResponse, ResponseStateEnumeration } from "./../../communication";
+import { LocalizationNamespaces } from "../../i18n";
+import { NavigationTypeEnumeration } from "../../navigation";
 export class NavigationService extends Service {
-  // INavigationService
-  history = [];
-
-  // Props
-  navigationRequestSubscriberDictionary = {};
-  navigationRequestSubscriptionCounter = 0;
-  historyOverflowLimit = 2000;
   constructor(key) {
     super(key);
+    this.history = [];
+    this.navigationRequestSubscriberDictionary = {};
+    this.navigationRequestSubscriptionCounter = 0;
+    this.historyOverflowLimit = 2000;
     this.display = {
       keyNamespace: LocalizationNamespaces.System,
-      key: 'services.navigationservice.display',
-      value: 'Navigation Service'
+      key: "services.navigationservice.display",
+      value: "Navigation Service"
     };
     this.description = {
       keyNamespace: LocalizationNamespaces.System,
-      key: 'services.navigationservice.description',
-      value: 'Provides all interaction options for UI navigation.'
+      key: "services.navigationservice.description",
+      value: "Provides all interaction options for UI navigation."
     };
   }
   show = (navigationData, url) => {
@@ -63,19 +60,15 @@ export class NavigationService extends Service {
   async onStopping() {
     return createResponse(true, ResponseStateEnumeration.OK, []);
   }
-  processNavigationRequest = navigationRequest => {
-    // Execute callbacks
-    Object.entries(this.navigationRequestSubscriberDictionary).forEach(([key, value]) => value(navigationRequest));
-
-    // Archive navigation request
+  processNavigationRequest(navigationRequest) {
+    Object.values(this.navigationRequestSubscriberDictionary).forEach(callback => callback(navigationRequest));
     this.archiveNavigationRequest(navigationRequest);
-
-    // Increase service version
-    this.updateVersion(`Navigation requested has been added [${navigationRequest.key}, ${navigationRequest.type}]`);
-  };
-  archiveNavigationRequest = navigationRequest => {
-    // Add navigation request
+    this.updateVersion(`Navigation request has been added [${navigationRequest.key}, ${navigationRequest.type}]`);
+  }
+  archiveNavigationRequest(navigationRequest) {
     this.history.unshift(navigationRequest);
-    if (this.history.length > this.historyOverflowLimit) this.history.pop();
-  };
+    if (this.history.length > this.historyOverflowLimit) {
+      this.history.pop();
+    }
+  }
 }

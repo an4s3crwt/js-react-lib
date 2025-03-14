@@ -1,3 +1,4 @@
+import { Service } from './abstractions';
 import { NavigationService } from './crosscutting/navigationService';
 import { RESTService } from './crosscutting/restService';
 import { ServiceKeys } from './serviceKeys';
