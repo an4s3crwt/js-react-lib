@@ -1,132 +1,113 @@
-import { Service } from "./../abstractions";
-import {
-  createResponse,
-  ResponseStateEnumeration,
-} from "./../../communication";
-import { LocalizationNamespaces } from "../../i18n";
-import { NavigationTypeEnumeration } from "../../navigation";
+import { Service } from '../abstractions'; // Assuming Service class is already defined
+import { createResponse, ResponseStateEnumeration } from './../../communication';
+import { NavigationTypeEnumeration, NavigationRequest } from '../../navigation';
+import { LocalizationNamespaces } from '../../i18n';
 
-export class NavigationService extends Service {
+// Define NavigationRequestCallbackMethod type
+const NavigationRequestCallbackMethod = (navigationRequest) => {};
+
+// Dictionary to store subscribers
+const navigationRequestSubscriberDictionary = {};
+let navigationRequestSubscriptionCounter = 0;
+
+// NavigationService class
+class NavigationService extends Service {
   constructor(key) {
     super(key);
 
+    // Properties
     this.history = [];
     this.navigationRequestSubscriberDictionary = {};
     this.navigationRequestSubscriptionCounter = 0;
     this.historyOverflowLimit = 2000;
 
+    // Display and description
     this.display = {
       keyNamespace: LocalizationNamespaces.System,
-      key: "services.navigationservice.display",
-      value: "Navigation Service",
+      key: 'services.navigationservice.display',
+      value: 'Navigation Service'
     };
 
     this.description = {
       keyNamespace: LocalizationNamespaces.System,
-      key: "services.navigationservice.description",
-      value: "Provides all interaction options for UI navigation.",
+      key: 'services.navigationservice.description',
+      value: 'Provides all interaction options for UI navigation.'
     };
-
-    this.logger.info("NavigationService initialized.");
   }
 
-  show = (navigationData, url) => {
+  // show method
+  show(navigationData, url = '') {
     const navigationRequest = {
       key: navigationData.key,
-      type: navigationData.type
-        ? navigationData.type
-        : NavigationTypeEnumeration.View,
+      type: navigationData.type || NavigationTypeEnumeration.View,
       url: url,
-      timeStamp: Date.now(),
+      timeStamp: Date.now()
     };
 
-    this.logger.debug(`Showing navigation request: ${JSON.stringify(navigationRequest)}`);
     this.processNavigationRequest(navigationRequest);
-  };
+  }
 
-  onNavigationRequest = (contextKey, callbackHandler) => {
-    this.navigationRequestSubscriptionCounter++;
-    const registerKey = `${contextKey}_${this.navigationRequestSubscriptionCounter}`;
+  // onNavigationRequest method
+  onNavigationRequest(contextKey, callbackHandler) {
+    // Setup register key
+    navigationRequestSubscriptionCounter++;
+    const registerKey = `${contextKey}_${navigationRequestSubscriptionCounter}`;
 
-    this.navigationRequestSubscriberDictionary[registerKey] = callbackHandler;
-    this.logger.debug(
-      `Component with key '${registerKey}' has subscribed to 'NavigationRequest'.`
-    );
-    this.logger.debug(
-      `'${Object.entries(this.navigationRequestSubscriberDictionary).length}' subscribers on 'NavigationRequest'.`
-    );
+    // Register callback
+    navigationRequestSubscriberDictionary[registerKey] = callbackHandler;
+    this.logger.debug(`Component with key '${registerKey}' has subscribed to 'NavigationRequest'.`);
+    this.logger.debug(`'${Object.entries(navigationRequestSubscriberDictionary).length}' subscribers on 'Changes'.`);
 
     return registerKey;
-  };
+  }
 
-  offNavigationRequest = (registerKey) => {
-    const existingSubscriber = Object.entries(this.navigationRequestSubscriberDictionary)
-      .find(([key, value]) => key === registerKey);
-    
+  // offNavigationRequest method
+  offNavigationRequest(registerKey) {
+    // Delete callback
+    const existingSubscriber = Object.entries(navigationRequestSubscriberDictionary).find(([key, value]) => key === registerKey);
     if (existingSubscriber) {
-      delete this.navigationRequestSubscriberDictionary[registerKey];
-      this.logger.debug(
-        `Component with key '${registerKey}' has unsubscribed from 'NavigationRequest'.`
-      );
-      this.logger.debug(
-        `'${Object.entries(this.navigationRequestSubscriberDictionary).length}' subscribers on 'NavigationRequest'.`
-      );
+      delete navigationRequestSubscriberDictionary[registerKey];
+      this.logger.debug(`Component with key '${registerKey}' has unsubscribed from 'Changes'.`);
+      this.logger.debug(`'${Object.entries(navigationRequestSubscriberDictionary).length}' subscribers on 'Changes'.`);
       return true;
     } else {
-      this.logger.error(
-        `Component with key '${registerKey}' not found in 'NavigationRequest' subscriptions.`
-      );
-      this.logger.debug(
-        `'${Object.entries(this.navigationRequestSubscriberDictionary).length}' subscribers on 'NavigationRequest'.`
-      );
+      this.logger.error(`Component with key '${registerKey}' not registered on 'Changes'.`);
+      this.logger.debug(`'${Object.entries(navigationRequestSubscriberDictionary).length}' subscribers on 'Changes'.`);
       return false;
     }
-  };
+  }
 
+  // onStarting method
   async onStarting() {
-    try {
-      this.logger.info("NavigationService is starting...");
-      return createResponse(true, ResponseStateEnumeration.OK, []);
-    } catch (error) {
-      this.logger.error("Error during NavigationService startup:", error);
-      return createResponse(false, ResponseStateEnumeration.Error, [error.message]);
-    }
+    return createResponse(true, ResponseStateEnumeration.OK, []);
   }
 
+  // onStopping method
   async onStopping() {
-    try {
-      this.logger.info("NavigationService is stopping...");
-      return createResponse(true, ResponseStateEnumeration.OK, []);
-    } catch (error) {
-      this.logger.error("Error during NavigationService shutdown:", error);
-      return createResponse(false, ResponseStateEnumeration.Error, [error.message]);
-    }
+    return createResponse(true, ResponseStateEnumeration.OK, []);
   }
 
+  // Private method to process navigation request
   processNavigationRequest(navigationRequest) {
-    try {
-      this.logger.debug(`Processing navigation request: ${JSON.stringify(navigationRequest)}`);
-      Object.values(this.navigationRequestSubscriberDictionary).forEach(
-        (callback) => callback(navigationRequest)
-      );
-      this.archiveNavigationRequest(navigationRequest);
-      this.updateVersion(
-        `Navigation request has been added [${navigationRequest.key}, ${navigationRequest.type}]`
-      );
-    } catch (error) {
-      this.logger.error("Error processing navigation request:", error);
-    }
+    // Execute callbacks
+    Object.entries(navigationRequestSubscriberDictionary).forEach(([key, value]) => value(navigationRequest));
+
+    // Archive navigation request
+    this.archiveNavigationRequest(navigationRequest);
+
+    // Increase service version
+    this.updateVersion(`Navigation request has been added [${navigationRequest.key}, ${navigationRequest.type}]`);
   }
 
+  // Private method to archive navigation request
   archiveNavigationRequest(navigationRequest) {
-    try {
-      this.history.unshift(navigationRequest);
-      if (this.history.length > this.historyOverflowLimit) {
-        this.history.pop();
-      }
-      this.logger.debug(`Archived navigation request: ${JSON.stringify(navigationRequest)}`);
-    } catch (error) {
-      this.logger.error("Error archiving navigation request:", error);
+    // Add navigation request
+    this.history.unshift(navigationRequest);
+
+    if (this.history.length > this.historyOverflowLimit) {
+      this.history.pop();
     }
   }
 }
+
+export { NavigationService };
