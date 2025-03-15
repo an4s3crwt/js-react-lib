@@ -1,5 +1,5 @@
 import { LogProvider } from "./../../logging";
-
+import { ServiceProvider } from "../serviceProvider";
 import { LocalizationNamespaces } from "./../../i18n";
 import {
   createResponse,
@@ -35,7 +35,7 @@ export class Service {
     this.version = 0;
     this.changesSubscriberDictionary = {};
     this.changesSubscriptionCounter = 0;
-    this.serviceProvider = null;
+    this.serviceProvider = serviceProvider;//changed from null to serviceprovider
     this.isDebugModeActive = false;
   }
   /** Inicia el servicio */
