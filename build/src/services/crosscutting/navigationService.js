@@ -1,8 +1,7 @@
-import { Service } from '../abstractions';
 import { createResponse, ResponseStateEnumeration } from './../../communication';
 import { NavigationTypeEnumeration, NavigationRequest } from '../../navigation';
 import { LocalizationNamespaces } from '../../i18n';
-
+import { Service } from '../abstractions';
 // Define NavigationRequestCallbackMethod type
 const NavigationRequestCallbackMethod = navigationRequest => {};
 

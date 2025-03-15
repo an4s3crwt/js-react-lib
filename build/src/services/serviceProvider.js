@@ -1,9 +1,10 @@
 import { Service } from "./abstractions";
 import { ServiceDictionary } from "./serviceDictionary";
-import { LogProvider } from "./../logging";
-import { ResponseStateEnumeration } from "./../communication";
+import { LogProvider, Logger } from "./../logging";
+import { ResponseStateEnumeration, createResponse } from "./../communication";
 
-export class ServiceProvider extends Service {
+
+export class ServiceProvider {
   constructor(key) {
     super(key);
     this.key = key;
