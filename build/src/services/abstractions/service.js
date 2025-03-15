@@ -1,8 +1,7 @@
 import { LogProvider } from "./../../logging";
+import { ServiceProvider } from "../serviceProvider";
 import { LocalizationNamespaces } from "./../../i18n";
 import { createResponse, ResponseStateEnumeration } from "./../../communication";
-
-
 export const ServiceStateEnumeration = {
   Unknown: 0,
   Initialized: 1,

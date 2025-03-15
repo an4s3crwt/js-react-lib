@@ -1,7 +1,8 @@
+import { Service } from '../abstractions';
 import { createResponse, ResponseStateEnumeration } from './../../communication';
 import { NavigationTypeEnumeration, NavigationRequest } from '../../navigation';
 import { LocalizationNamespaces } from '../../i18n';
-import { Service } from '../abstractions';
+
 // Define NavigationRequestCallbackMethod type
 const NavigationRequestCallbackMethod = navigationRequest => {};
 
@@ -10,7 +11,7 @@ const navigationRequestSubscriberDictionary = {};
 let navigationRequestSubscriptionCounter = 0;
 
 // NavigationService class
-class NavigationService extends Service {
+export class NavigationService extends Service {
   constructor(key) {
     super(key);
 
@@ -104,4 +105,3 @@ class NavigationService extends Service {
     }
   }
 }
-export { NavigationService };
