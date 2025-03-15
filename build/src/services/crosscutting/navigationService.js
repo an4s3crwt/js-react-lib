@@ -1,4 +1,4 @@
-import { Service } from '../abstractions/service'; // Assuming Service class is already defined
+import { Service } from '../abstractions';
 import { createResponse, ResponseStateEnumeration } from './../../communication';
 import { NavigationTypeEnumeration, NavigationRequest } from '../../navigation';
 import { LocalizationNamespaces } from '../../i18n';

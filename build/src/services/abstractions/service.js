@@ -9,7 +9,7 @@ export const ServiceStateEnumeration = {
   Stopped: 3,
   Error: 4
 };
-export default class Service {
+export class Service {
   constructor(key) {
     this.key = key;
     this.display = {
